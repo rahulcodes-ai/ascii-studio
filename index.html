@@ -331,14 +331,26 @@
       if (!isRecording) {
         const stream = asciiCanvas.captureStream(30);
         recordedChunks = [];
-        mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp9" });
+
+        // X (Twitter) friendly MP4 (H.264) first, fallback to WebM
+        let mime = "video/webm;codecs=vp9";
+        let ext = "webm";
+        if (MediaRecorder.isTypeSupported("video/mp4;codecs=avc1.42E01E")) {
+          mime = "video/mp4;codecs=avc1.42E01E";
+          ext = "mp4";
+        } else if (MediaRecorder.isTypeSupported("video/mp4")) {
+          mime = "video/mp4";
+          ext = "mp4";
+        }
+
+        mediaRecorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 5000000 });
         mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
         mediaRecorder.onstop = () => {
-          const blob = new Blob(recordedChunks, { type: "video/webm" });
+          const blob = new Blob(recordedChunks, { type: mime });
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          a.download = "pheno-ascii-video.webm";
+          a.download = `pheno-ascii-video.${ext}`;
           a.click();
         };
         mediaRecorder.start();
@@ -364,7 +376,6 @@
       sCtx.fillStyle = g;
       sCtx.fillRect(0, 0, w, h);
 
-      // Moving neon orbs (Blade Runner vibe)
       const cx = w * 0.5 + Math.sin(t * 0.0012) * (w * 0.22);
       const cy = h * 0.48 + Math.cos(t * 0.0015) * (h * 0.12);
 
@@ -383,7 +394,6 @@
       sCtx.fillStyle = orb2;
       sCtx.fillRect(0, 0, w, h);
 
-      // Center holographic ring
       sCtx.strokeStyle = "#ffffff";
       sCtx.lineWidth = Math.max(2, w * 0.015);
       sCtx.beginPath();
@@ -397,7 +407,7 @@
 
       const cols = parseInt(colsRange.value, 10);
       const aspect = (!useDemo && video.videoWidth) ? (video.videoHeight / video.videoWidth) : (9 / 16);
-      const rows = Math.max(24, Math.floor(cols * aspect * 0.52)); // char aspect correction
+      const rows = Math.max(24, Math.floor(cols * aspect * 0.52));
 
       document.getElementById("charCount").textContent = `${(cols * rows).toLocaleString()} CHARS / FRAME`;
 
@@ -419,7 +429,6 @@
       const contrast = parseFloat(contrastRange.value);
       const mode = colorModeEl.value;
 
-      // Output canvas setup
       const outW = 960;
       const outH = Math.round(outW * aspect);
       if (asciiCanvas.width !== outW || asciiCanvas.height !== outH) {
@@ -442,7 +451,6 @@
           let g = imgData[i + 1];
           let b = imgData[i + 2];
 
-          // Apply contrast
           r = Math.min(255, Math.max(0, (r - 128) * contrast + 128));
           g = Math.min(255, Math.max(0, (g - 128) * contrast + 128));
           b = Math.min(255, Math.max(0, (b - 128) * contrast + 128));
